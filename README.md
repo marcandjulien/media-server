@@ -1,3 +1,7 @@
+Copyright 2021, Marc-André Julien, All rights reserved
+
+This product is a prototype. I will add license and term of use when it is ready to use.
+
 # image-server
 
 <!--Add banner and logo-->
