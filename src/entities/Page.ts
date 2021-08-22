@@ -6,6 +6,8 @@ import { Story } from './Story';
 import { Tag } from './Tag';
 
 @Entity()
+// @Filter({ name: 'onlyTags', cond: ({ tags }) => ({ tags: { name: { $in: tags } } }) })
+// @Filter({ name: 'skipTags', cond: ({ tags }) => ({ tags: { name: { $nin: tags } } }) })
 export class Page extends BaseEntity {
   @Property()
   number!: string;

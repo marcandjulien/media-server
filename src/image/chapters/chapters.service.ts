@@ -4,6 +4,7 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Chapter } from 'src/entities/Chapter';
 import { Page } from 'src/entities/Page';
 import { Story } from 'src/entities/Story';
+import { PageFilterQueryDto } from '../pages/dto/page-filter-query.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 
@@ -33,12 +34,58 @@ export class ChaptersService {
     return await this.chapterRepository.findAll();
   }
 
-  async findOne(uuid: string) {
-    const chapter = await this.chapterRepository.findOne(uuid);
-    const pages = await this.pageRepository.find(
-      { chapter },
+  formatWhere(pageFilterQuery: PageFilterQueryDto) {
+    // Not working
+    const whereCondition = [];
+    if (pageFilterQuery?.skipTags?.length) {
+      whereCondition.push({ tags: { $nin: pageFilterQuery?.skipTags } });
+    }
+
+    if (pageFilterQuery?.onlyTags?.length) {
+    }
+
+    return whereCondition;
+  }
+
+  filterPage(pages: Page[], pageFilterQuery: PageFilterQueryDto) {
+    return pages.filter((page) => {
+      if (
+        pageFilterQuery?.skipTags?.length > 0 &&
+        pageFilterQuery.skipTags.filter((t) =>
+          page.tags
+            .toArray()
+            .map((pt) => pt.name)
+            .includes(t),
+        ).length > 0
+      ) {
+        return false;
+      }
+
+      if (
+        pageFilterQuery?.onlyTags?.length > 0 &&
+        pageFilterQuery.onlyTags.filter((t) =>
+          page.tags
+            .toArray()
+            .map((pt) => pt.name)
+            .includes(t),
+        ).length === 0
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  async findOne(uuid: string, pageFilterQuery: PageFilterQueryDto) {
+    const chapter = await this.chapterRepository.findOne(uuid, ['pages.tags']);
+
+    let pages = await this.pageRepository.find(
+      { $and: [{ chapter: { $eq: chapter } }] },
       { orderBy: { number: QueryOrder.ASC } },
     );
+
+    pages = this.filterPage(pages, pageFilterQuery);
 
     if (!chapter) {
       throw new HttpException('Chapter not found', HttpStatus.NOT_FOUND);

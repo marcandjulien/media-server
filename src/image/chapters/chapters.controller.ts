@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { PageFilterQueryDto } from '../pages/dto/page-filter-query.dto';
 import { ChaptersService } from './chapters.service';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
@@ -18,8 +19,8 @@ export class ChaptersController {
   }
 
   @Get(':uuid')
-  findOne(@Param('uuid') uuid: string) {
-    return this.chaptersService.findOne(uuid);
+  findOne(@Param('uuid') uuid: string, @Query() pageFilterQuery: PageFilterQueryDto) {
+    return this.chaptersService.findOne(uuid, pageFilterQuery);
   }
 
   @Patch(':uuid')
