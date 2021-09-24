@@ -1,0 +1,12 @@
+version: '3'
+services:
+  database:
+    image: 'postgres'
+    ports:
+      - '35432:5432'
+    env_file:
+      - database.env
+    volumes:
+      - mediaserver-data:/var/lib/postgresql/data/
+volumes:
+  mediaserver-data:

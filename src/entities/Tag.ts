@@ -1,4 +1,4 @@
-import { Collection, Entity, ManyToMany, Property } from '@mikro-orm/core';
+import { Collection, Entity, Index, ManyToMany, Property, Unique } from '@mikro-orm/core';
 import { BaseEntity } from './BaseEntity';
 import { Book } from './Book';
 import { Chapter } from './Chapter';
@@ -6,6 +6,8 @@ import { Page } from './Page';
 import { Story } from './Story';
 
 @Entity()
+@Index({ properties: ['name'] })
+@Unique({ properties: ['name'] })
 export class Tag extends BaseEntity {
   @Property()
   name!: string;

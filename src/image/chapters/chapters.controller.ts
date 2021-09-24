@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { PageFilterQueryDto } from '../pages/dto/page-filter-query.dto';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { ImageQueryParam } from '../dto/image-query-param.dto';
 import { ChaptersService } from './chapters.service';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
@@ -9,8 +9,8 @@ export class ChaptersController {
   constructor(private readonly chaptersService: ChaptersService) {}
 
   @Post()
-  create(@Body() createChapterDto: CreateChapterDto) {
-    return this.chaptersService.create(createChapterDto);
+  async create(@Body() createChapterDto: CreateChapterDto) {
+    return await this.chaptersService.create(createChapterDto);
   }
 
   @Get()
@@ -19,8 +19,8 @@ export class ChaptersController {
   }
 
   @Get(':uuid')
-  findOne(@Param('uuid') uuid: string, @Query() pageFilterQuery: PageFilterQueryDto) {
-    return this.chaptersService.findOne(uuid, pageFilterQuery);
+  findOne(@Param('uuid') uuid: string, @Query() query: ImageQueryParam) {
+    return this.chaptersService.findOne(uuid, query);
   }
 
   @Patch(':uuid')
@@ -29,7 +29,8 @@ export class ChaptersController {
   }
 
   @Delete(':uuid')
-  remove(@Param('uuid') uuid: string) {
-    return this.chaptersService.remove(uuid);
+  @HttpCode(204)
+  async remove(@Param('uuid') uuid: string) {
+    await this.chaptersService.remove(uuid);
   }
 }

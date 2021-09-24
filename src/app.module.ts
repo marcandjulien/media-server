@@ -6,7 +6,7 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import image from './config/image';
-import { FileModule } from './file/file.module';
+import { FilesModule } from './files/files.module';
 import { ImageModule } from './image/image.module';
 import { LoggerModule } from './logger/logger.module';
 import mikroOrmConfig from './mikro-orm.config';
@@ -25,7 +25,7 @@ import mikroOrmConfig from './mikro-orm.config';
     }),
     LoggerModule,
     ImageModule,
-    FileModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

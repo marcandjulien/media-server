@@ -1,13 +1,14 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 import { Chapter } from 'src/entities/Chapter';
+import { File } from 'src/entities/File';
 import { Page } from 'src/entities/Page';
 import { Story } from 'src/entities/Story';
 import { ChaptersController } from './chapters.controller';
 import { ChaptersService } from './chapters.service';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Chapter, Story, Page])],
+  imports: [MikroOrmModule.forFeature([Chapter, Story, Page, File])],
   controllers: [ChaptersController],
   providers: [ChaptersService],
 })

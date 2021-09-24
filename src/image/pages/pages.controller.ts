@@ -3,18 +3,16 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
-  Query,
-  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { CreatePageDto } from './dto/create-page.dto';
-import { ImageQueryDto } from './dto/image-query.dto';
 import { PageDto } from './dto/page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { PagesService } from './pages.service';
@@ -30,8 +28,9 @@ export class PagesController {
     description: 'A new page',
     type: CreatePageDto,
   })
-  create(@Body() createPageDto: CreatePageDto, @UploadedFile() file: Express.Multer.File) {
-    this.pagesService.create(createPageDto, file);
+  @HttpCode(204)
+  async create(@Body() createPageDto: CreatePageDto, @UploadedFile() file: Express.Multer.File) {
+    await this.pagesService.create(createPageDto, file);
   }
 
   @Get()
@@ -50,13 +49,8 @@ export class PagesController {
   }
 
   @Delete(':uuid')
-  remove(@Param('uuid') uuid: string) {
-    return this.pagesService.remove(uuid);
-  }
-
-  @Get([':uuid/download', ':uuid/download/:filename'])
-  async download(@Param('uuid') uuid: string, @Query() imageQuery: ImageQueryDto) {
-    const imageBuffer = await this.pagesService.getImage(uuid, imageQuery);
-    return new StreamableFile(imageBuffer);
+  @HttpCode(204)
+  async remove(@Param('uuid') uuid: string) {
+    await this.pagesService.remove(uuid);
   }
 }

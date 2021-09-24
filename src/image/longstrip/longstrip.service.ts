@@ -122,7 +122,7 @@ export class LongstripService {
           height = 100;
         } else {
           height = Math.round(height / 2);
-          top += height;
+          top += height - 1;
         }
         cropSelection[cropSelection.length - 1].height += height;
         cropSelection.push({ top, height });

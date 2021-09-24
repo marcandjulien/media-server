@@ -1,10 +1,12 @@
 import { EntityRepository, QueryOrder } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { isEmpty, isNil } from 'lodash';
 import { Chapter } from 'src/entities/Chapter';
+import { File } from 'src/entities/File';
 import { Page } from 'src/entities/Page';
 import { Story } from 'src/entities/Story';
-import { PageFilterQueryDto } from '../pages/dto/page-filter-query.dto';
+import { ImageQueryParam } from '../dto/image-query-param.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 
@@ -19,6 +21,8 @@ export class ChaptersService {
     private readonly chapterRepository: EntityRepository<Chapter>,
     @InjectRepository(Story)
     private readonly storyRepository: EntityRepository<Story>,
+    @InjectRepository(File)
+    private readonly fileRepository: EntityRepository<File>,
   ) {}
 
   async create(createChapterDto: CreateChapterDto) {
@@ -34,62 +38,23 @@ export class ChaptersService {
     return await this.chapterRepository.findAll();
   }
 
-  formatWhere(pageFilterQuery: PageFilterQueryDto) {
-    // Not working
-    const whereCondition = [];
-    if (pageFilterQuery?.skipTags?.length) {
-      whereCondition.push({ tags: { $nin: pageFilterQuery?.skipTags } });
-    }
-
-    if (pageFilterQuery?.onlyTags?.length) {
-    }
-
-    return whereCondition;
-  }
-
-  filterPage(pages: Page[], pageFilterQuery: PageFilterQueryDto) {
-    return pages.filter((page) => {
-      if (
-        pageFilterQuery?.skipTags?.length > 0 &&
-        pageFilterQuery.skipTags.filter((t) =>
-          page.tags
-            .toArray()
-            .map((pt) => pt.name)
-            .includes(t),
-        ).length > 0
-      ) {
-        return false;
-      }
-
-      if (
-        pageFilterQuery?.onlyTags?.length > 0 &&
-        pageFilterQuery.onlyTags.filter((t) =>
-          page.tags
-            .toArray()
-            .map((pt) => pt.name)
-            .includes(t),
-        ).length === 0
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }
-
-  async findOne(uuid: string, pageFilterQuery: PageFilterQueryDto) {
-    const chapter = await this.chapterRepository.findOne(uuid, ['pages.tags']);
-
-    let pages = await this.pageRepository.find(
-      { $and: [{ chapter: { $eq: chapter } }] },
-      { orderBy: { number: QueryOrder.ASC } },
-    );
-
-    pages = this.filterPage(pages, pageFilterQuery);
+  async findOne(uuid: string, query: ImageQueryParam) {
+    const chapter = await this.chapterRepository.findOne(uuid);
 
     if (!chapter) {
       throw new HttpException('Chapter not found', HttpStatus.NOT_FOUND);
     }
+
+    const where = isEmpty(query.filter.pagesTags)
+      ? []
+      : [{ tags: { name: query.filter.pagesTags } }];
+
+    const pages = await this.pageRepository.find(
+      { $and: [{ chapter: { $eq: chapter } }, ...where] },
+      { orderBy: { number: QueryOrder.ASC }, populate: ['tags'] },
+    );
+
+    // pages = this.filterPage(pages, pageFilterQuery);
 
     return { ...chapter, pages };
   }
@@ -119,6 +84,14 @@ export class ChaptersService {
   }
 
   async remove(uuid: string) {
-    return `This action removes a #${uuid} chapter`;
+    const chapter = await this.chapterRepository.findOneOrFail(uuid, ['pages.file']);
+
+    const filesRecords = [
+      chapter.cover,
+      ...chapter.pages.getItems().map((page) => page.file),
+    ].filter((file) => !isNil(file));
+    filesRecords.forEach((file) => this.fileRepository.remove(file));
+
+    await this.chapterRepository.removeAndFlush(chapter);
   }
 }

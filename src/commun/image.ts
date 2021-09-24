@@ -5,7 +5,7 @@ export function makeArrayFromPixels(
   height,
   width,
   sumColor = false,
-): number[][] | number[][][] {
+): number[][] {
   const pixels2D = new Array(height);
 
   for (let line = 0; line < height; line++) {

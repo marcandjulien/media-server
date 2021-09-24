@@ -4,6 +4,10 @@
 /files 
 /schema
 
+# secret
+.env
+database.env
+
 # database
 *.sqlite3
 

@@ -1,32 +1,46 @@
-import { Collection, Entity, ManyToMany, ManyToOne, OneToMany, Property } from '@mikro-orm/core';
+import {
+  Collection,
+  Entity,
+  Index,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  Property,
+  QueryOrder,
+} from '@mikro-orm/core';
 import { Artist } from './Artist';
 import { Author } from './Author';
 import { BaseEntity } from './BaseEntity';
 import { Book } from './Book';
 import { Chapter } from './Chapter';
+import { File } from './File';
 import { MediaType } from './MediaType';
 import { Page } from './Page';
 import { Tag } from './Tag';
 
 @Entity()
 export class Story extends BaseEntity {
+  @Index()
   @Property()
   title!: string;
 
   @ManyToOne(() => MediaType)
   mediaType!: MediaType;
 
-  @ManyToOne(() => Page)
-  cover!: Page;
+  @ManyToOne(() => File, { nullable: true, onDelete: 'set null' })
+  cover!: File;
 
-  @OneToMany(() => Page, (page) => page.story)
-  pages = new Collection<Page>(this);
-
-  @OneToMany(() => Chapter, (chapter) => chapter.story)
+  @OneToMany(() => Chapter, (chapter) => chapter.story, {
+    orderBy: { sort: QueryOrder.ASC },
+    orphanRemoval: true,
+  })
   chapters = new Collection<Chapter>(this);
 
-  @OneToMany(() => Book, (book) => book.story)
+  @OneToMany(() => Book, (book) => book.story, { orphanRemoval: true })
   books = new Collection<Chapter>(this);
+
+  @OneToMany(() => Page, (page) => page.story, { orphanRemoval: true })
+  pages = new Collection<Page>(this);
 
   @ManyToMany(() => Artist, (artist) => artist.stories, { owner: true })
   artists = new Collection<Artist>(this);

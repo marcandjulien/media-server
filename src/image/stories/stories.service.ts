@@ -1,9 +1,13 @@
 import { EntityRepository, QueryOrder } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { isEmpty, isNil } from 'lodash';
+import { Chapter } from 'src/entities/Chapter';
+import { File } from 'src/entities/File';
 import { MediaType } from 'src/entities/MediaType';
 import { Page } from 'src/entities/Page';
 import { Story } from 'src/entities/Story';
+import { ImageQueryParam } from '../dto/image-query-param.dto';
 import { CreateStoryDto } from './dto/create-story.dto';
 import { UpdateStoryDto } from './dto/update-story.dto';
 
@@ -14,10 +18,14 @@ export class StoriesService {
   constructor(
     @InjectRepository(Story)
     private readonly storyRepository: EntityRepository<Story>,
+    @InjectRepository(Chapter)
+    private readonly chapterRepository: EntityRepository<Chapter>,
     @InjectRepository(Page)
     private readonly pageRepository: EntityRepository<Page>,
     @InjectRepository(MediaType)
     private readonly mediaTypeRepository: EntityRepository<MediaType>,
+    @InjectRepository(File)
+    private readonly fileRepository: EntityRepository<File>,
   ) {}
 
   async create(createStoryDto: CreateStoryDto) {
@@ -30,20 +38,48 @@ export class StoriesService {
   }
 
   async findAll() {
-    return await this.storyRepository.findAll({ populate: true });
+    const stories = await this.storyRepository.findAll(['cover']); // tags?
+    return stories;
   }
 
-  async findOne(uuid: string) {
-    const story = await this.storyRepository.findOne(uuid, ['chapters.pages']);
-    const pages = await this.pageRepository.find(
-      { story },
-      { orderBy: { number: QueryOrder.ASC } },
+  goodChapter(chapter: Chapter) {
+    return chapter.pages.getItems().some((page) =>
+      page.tags
+        .getItems()
+        .map((t) => t.name)
+        .includes('H Scene'),
     );
+  }
+
+  async findOne(uuid: string, query: ImageQueryParam) {
+    const story = await this.storyRepository.findOne(uuid);
+
     if (!story) {
       throw new HttpException('Story not found', HttpStatus.NOT_FOUND);
     }
 
-    return { ...story, pages };
+    let chapters;
+    if (isEmpty(query.filter.pagesTags)) {
+      chapters = await this.chapterRepository.find(
+        { $and: [{ story: { $eq: story } }] },
+        {
+          populate: [...query.populate],
+          orderBy: { sort: QueryOrder.ASC },
+        },
+      );
+    } else {
+      chapters = await this.chapterRepository.find(
+        {
+          $and: [{ story: { $eq: story } }, { pages: { tags: { name: query.filter.pagesTags } } }],
+        },
+        { populate: ['pages.tags', ...query.populate], orderBy: { sort: QueryOrder.ASC } },
+      );
+    }
+
+    return {
+      ...story,
+      chapters,
+    };
   }
 
   async update(uuid: string, updateStoryDto: UpdateStoryDto) {
@@ -66,8 +102,22 @@ export class StoriesService {
     return story;
   }
 
-  remove(uuid: string) {
-    return 'Not implemented yet!';
+  async remove(uuid: string) {
+    const story = await this.storyRepository.findOneOrFail(uuid, [
+      'books',
+      'chapters',
+      'pages.file',
+    ]);
+
+    const filesRecords = [
+      story.cover,
+      ...story.books.getItems().map((book) => book.cover),
+      ...story.chapters.getItems().map((chapter) => chapter.cover),
+      ...story.pages.getItems().map((page) => page.file),
+    ].filter((file) => !isNil(file));
+    filesRecords.forEach((file) => this.fileRepository.remove(file));
+
+    await this.storyRepository.removeAndFlush(story);
   }
 
   async findOrCreateMediaType(name: string) {
